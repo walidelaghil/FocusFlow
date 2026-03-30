@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FocusFlow Browser Prototype</title>
+    <style>
+      :root {
+        --glass-bg: rgba(20, 20, 23, 0.68);
+        --glass-bg-strong: rgba(16, 17, 20, 0.84);
+        --glass-border: rgba(255, 255, 255, 0.12);
+        --surface: rgba(255, 255, 255, 0.08);
+        --surface-strong: rgba(255, 255, 255, 0.12);
+        --text-primary: #eaeaea;
+        --text-muted: #8f9097;
+        --accent-blue: #3b82f6;
+        --accent-orange: #f59e0b;
+        --accent-red: #ef4444;
+        --radius-pill: 9999px;
+        --radius-card: 28px;
+        --shadow: 0 18px 60px -20px rgba(0, 0, 0, 0.58);
+        --font-main: "Satoshi", "Aptos", "Segoe UI", system-ui, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        min-height: 100%;
+        margin: 0;
+      }
+
+      body {
+        overflow: hidden;
+        color: var(--text-primary);
+        font-family: var(--font-main);
+        background:
+          radial-gradient(circle at 10% 10%, rgba(50, 90, 185, 0.35), transparent 26%),
+          radial-gradient(circle at 85% 15%, rgba(13, 74, 128, 0.4), transparent 30%),
+          radial-gradient(circle at 50% 110%, rgba(131, 74, 219, 0.18), transparent 35%),
+          linear-gradient(180deg, #090b10 0%, #11141b 45%, #090b10 100%);
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background:
+          linear-gradient(135deg, rgba(255, 255, 255, 0.025) 25%, transparent 25%) -24px 0 / 48px 48px,
+          linear-gradient(225deg, rgba(255, 255, 255, 0.025) 25%, transparent 25%) -24px 0 / 48px 48px,
+          linear-gradient(315deg, rgba(255, 255, 255, 0.025) 25%, transparent 25%) 0 0 / 48px 48px,
+          linear-gradient(45deg, rgba(255, 255, 255, 0.025) 25%, transparent 25%) 0 0 / 48px 48px;
+        opacity: 0.22;
+        pointer-events: none;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+        border: 0;
+      }
+
+      .app-shell {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      .glass {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(26px) saturate(180%);
+        -webkit-backdrop-filter: blur(26px) saturate(180%);
+      }
+
+      .setup-screen {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        transition: opacity 320ms ease, transform 320ms ease;
+      }
+
+      .setup-screen.hidden {
+        opacity: 0;
+        transform: scale(0.96);
+        pointer-events: none;
+      }
+
+      .setup-card {
+        width: min(460px, calc(100vw - 32px));
+        border-radius: var(--radius-card);
+        overflow: hidden;
+      }
+
+      .setup-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 24px 24px 18px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .brand-mark {
+        width: 38px;
+        height: 38px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, #f3f7ff, #5ea4ff 35%, #226dff 100%);
+        color: #08111f;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        box-shadow: 0 18px 35px -16px rgba(59, 130, 246, 0.8);
+      }
+
+      .brand-copy h1 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+
+      .brand-copy p {
+        margin: 3px 0 0;
+        font-size: 11px;
+        color: var(--text-muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .total-badge {
+        border-radius: var(--radius-pill);
+        padding: 10px 14px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+      }
+
+      .agenda-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 14px 12px 0;
+        max-height: min(52vh, 460px);
+        overflow: auto;
+      }
+
+      .agenda-row {
+        display: grid;
+        grid-template-columns: 28px 1fr 78px 28px 28px 28px;
+        gap: 10px;
+        align-items: center;
+        padding: 8px 10px;
+        border-radius: 18px;
+        transition: background 180ms ease;
+      }
+
+      .agenda-row:hover {
+        background: rgba(255, 255, 255, 0.035);
+      }
+
+      .drag-dot {
+        color: rgba(255, 255, 255, 0.28);
+        text-align: center;
+        font-size: 16px;
+      }
+
+      .topic-input,
+      .minutes-input {
+        appearance: none;
+        border: 0;
+        outline: 0;
+        color: var(--text-primary);
+        background: transparent;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 10px 2px 8px;
+      }
+
+      .topic-input {
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .minutes-wrap {
+        display: flex;
+        align-items: baseline;
+        justify-content: flex-end;
+        gap: 4px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 10px 0 8px;
+      }
+
+      .minutes-input {
+        width: 38px;
+        padding: 0;
+        border-bottom: 0;
+        text-align: right;
+        font-size: 14px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .minutes-label {
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .icon-button {
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.42);
+        transition: background 180ms ease, color 180ms ease, transform 180ms ease;
+      }
+
+      .icon-button:hover {
+        background: rgba(255, 255, 255, 0.09);
+        color: #fff;
+      }
+
+      .icon-button:active {
+        transform: scale(0.95);
+      }
+
+      .setup-footer {
+        padding: 18px 24px 24px;
+      }
+
+      .primary-button {
+        width: 100%;
+        height: 52px;
+        border-radius: var(--radius-pill);
+        background: linear-gradient(180deg, #ffffff 0%, #dce7ff 100%);
+        color: #07101d;
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+        box-shadow: 0 18px 48px -18px rgba(255, 255, 255, 0.5);
+      }
+
+      .footer-note {
+        margin: 12px 0 0;
+        text-align: center;
+        color: rgba(255, 255, 255, 0.34);
+        font-size: 11px;
+      }
+
+      .meeting-stage {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 320ms ease;
+      }
+
+      .meeting-stage.active {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .floating-bar {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 240px;
+        border-radius: 34px;
+        overflow: hidden;
+        transition:
+          width 240ms cubic-bezier(0.2, 0.9, 0.2, 1),
+          transform 240ms cubic-bezier(0.2, 0.9, 0.2, 1),
+          border-radius 240ms ease;
+      }
+
+      .floating-bar.expanded {
+        width: 360px;
+      }
+
+      .floating-bar.warning .status-dot {
+        background: var(--accent-orange);
+        box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.12);
+      }
+
+      .floating-bar.overtime .status-dot {
+        background: var(--accent-red);
+        box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.12);
+      }
+
+      .progress-fill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 0%;
+        background: linear-gradient(90deg, rgba(59, 130, 246, 0.24), rgba(59, 130, 246, 0.62));
+        transition: width 640ms linear, background 180ms ease;
+      }
+
+      .floating-bar.warning .progress-fill {
+        background: linear-gradient(90deg, rgba(245, 158, 11, 0.24), rgba(245, 158, 11, 0.62));
+      }
+
+      .floating-bar.overtime .progress-fill {
+        background: linear-gradient(90deg, rgba(239, 68, 68, 0.24), rgba(239, 68, 68, 0.62));
+      }
+
+      .bar-header {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 64px;
+        padding: 0 18px 0 16px;
+      }
+
+      .current-meta {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        gap: 10px;
+      }
+
+      .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--accent-blue);
+        box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.12);
+        flex: 0 0 auto;
+      }
+
+      .current-copy {
+        min-width: 0;
+      }
+
+      .current-topic {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .current-subtext {
+        margin: 4px 0 0;
+        color: rgba(255, 255, 255, 0.58);
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .bar-timer-wrap {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .bar-divider {
+        width: 1px;
+        height: 18px;
+        background: rgba(255, 255, 255, 0.18);
+      }
+
+      .bar-timer {
+        font-size: 14px;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.06em;
+      }
+
+      .bar-body {
+        position: relative;
+        z-index: 1;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 240ms cubic-bezier(0.2, 0.9, 0.2, 1);
+        background: linear-gradient(180deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.2));
+      }
+
+      .floating-bar.expanded .bar-body {
+        max-height: 260px;
+      }
+
+      .bar-section {
+        padding: 12px 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .section-label {
+        margin: 0 0 10px;
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .upcoming-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .upcoming-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border-radius: 14px;
+        padding: 9px 10px;
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .upcoming-item span:first-child {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 13px;
+      }
+
+      .upcoming-item span:last-child {
+        color: rgba(255, 255, 255, 0.55);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .bar-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .remaining-copy {
+        color: rgba(255, 255, 255, 0.58);
+        font-size: 12px;
+      }
+
+      .control-group {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .control-button {
+        border-radius: 999px;
+        padding: 8px 12px;
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text-primary);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .control-button:hover {
+        background: rgba(255, 255, 255, 0.14);
+      }
+
+      .control-button.stop {
+        color: #ffd4d4;
+      }
+
+      .hint-strip {
+        position: absolute;
+        right: 20px;
+        bottom: 18px;
+        border-radius: 999px;
+        padding: 10px 14px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.58);
+        font-size: 12px;
+        letter-spacing: 0.04em;
+      }
+
+      .nudge-screen {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: rgba(0, 0, 0, 0.42);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 260ms ease;
+      }
+
+      .nudge-screen.active {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .nudge-shell {
+        position: relative;
+        text-align: center;
+      }
+
+      .nudge-shell::before {
+        content: "";
+        position: absolute;
+        inset: 50% auto auto 50%;
+        transform: translate(-50%, -50%);
+        width: 460px;
+        height: 460px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(239, 68, 68, 0.24), transparent 64%);
+        filter: blur(24px);
+        pointer-events: none;
+      }
+
+      .nudge-headline {
+        position: relative;
+        margin: 0;
+        font-size: clamp(52px, 10vw, 86px);
+        font-weight: 300;
+        letter-spacing: -0.04em;
+      }
+
+      .nudge-subtext {
+        position: relative;
+        margin: 16px 0 0;
+        font-size: 20px;
+        color: rgba(255, 255, 255, 0.78);
+      }
+
+      .nudge-subtext strong {
+        font-variant-numeric: tabular-nums;
+        color: #ffd8d8;
+      }
+
+      .nudge-actions {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 30px;
+        flex-wrap: wrap;
+      }
+
+      .nudge-primary,
+      .nudge-secondary {
+        min-width: 180px;
+        height: 50px;
+        padding: 0 24px;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .nudge-primary {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.35);
+      }
+
+      .nudge-secondary {
+        background: transparent;
+        color: rgba(255, 255, 255, 0.62);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .empty-state {
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 13px;
+      }
+
+      @media (max-width: 640px) {
+        .setup-card {
+          width: calc(100vw - 24px);
+        }
+
+        .agenda-row {
+          grid-template-columns: 24px 1fr 72px 24px 24px 24px;
+          gap: 8px;
+        }
+
+        .floating-bar,
+        .floating-bar.expanded {
+          width: calc(100vw - 20px);
+          max-width: 360px;
+        }
+
+        .nudge-subtext {
+          font-size: 17px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <section class="setup-screen" id="setupScreen">
+        <div class="setup-card glass">
+          <div class="setup-header">
+            <div class="brand">
+              <div class="brand-mark">FF</div>
+              <div class="brand-copy">
+                <h1>FocusFlow</h1>
+                <p>Dynamic Bar Prototype</p>
+              </div>
+            </div>
+            <div class="total-badge" id="totalTimeBadge">00:00</div>
+          </div>
+          <div class="agenda-list" id="agendaList"></div>
+          <div class="setup-footer">
+            <button class="primary-button" id="startFlowButton" type="button">Enter Flow</button>
+            <p class="footer-note">Press Enter inside a row to add the next agenda item.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="meeting-stage" id="meetingStage">
+        <div class="floating-bar glass" id="floatingBar">
+          <div class="progress-fill" id="progressFill"></div>
+          <div class="bar-header" id="barHeader">
+            <div class="current-meta">
+              <div class="status-dot"></div>
+              <div class="current-copy">
+                <p class="current-topic" id="currentTopic">Untitled</p>
+                <p class="current-subtext" id="currentSubtext">Click to pause</p>
+              </div>
+            </div>
+            <div class="bar-timer-wrap">
+              <div class="bar-divider"></div>
+              <div class="bar-timer" id="barTimer">00:00</div>
+            </div>
+          </div>
+          <div class="bar-body">
+            <div class="bar-section">
+              <p class="section-label">Up Next</p>
+              <div class="upcoming-list" id="upcomingList"></div>
+            </div>
+            <div class="bar-section bar-footer">
+              <div class="remaining-copy" id="remainingCopy">0m remaining in meeting</div>
+              <div class="control-group">
+                <button class="control-button" id="pauseResumeButton" type="button">Pause</button>
+                <button class="control-button" id="nextButton" type="button">Next</button>
+                <button class="control-button stop" id="stopButton" type="button">Stop</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="hint-strip">Hover to expand. Click the header to pause or resume.</div>
+      </section>
+
+      <section class="nudge-screen" id="nudgeScreen">
+        <div class="nudge-shell">
+          <h2 class="nudge-headline">Meeting Over.</h2>
+          <p class="nudge-subtext">You are <strong id="overtimeLabel">00:00</strong> overtime.</p>
+          <div class="nudge-actions">
+            <button class="nudge-primary" id="wrapUpButton" type="button">Wrap Up</button>
+            <button class="nudge-secondary" id="addFiveButton" type="button">Add 5 min</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const state = {
+        mode: "setup",
+        expanded: false,
+        running: true,
+        currentIndex: 0,
+        remainingSec: 0,
+        overtimeSec: 0,
+        items: [
+          { id: uid(), topic: "Intro", minutes: 5 },
+          { id: uid(), topic: "Roadmap Review", minutes: 20 },
+          { id: uid(), topic: "Wrap Up", minutes: 5 }
+        ]
+      };
+
+      const setupScreen = document.getElementById("setupScreen");
+      const meetingStage = document.getElementById("meetingStage");
+      const floatingBar = document.getElementById("floatingBar");
+      const progressFill = document.getElementById("progressFill");
+      const currentTopic = document.getElementById("currentTopic");
+      const currentSubtext = document.getElementById("currentSubtext");
+      const barTimer = document.getElementById("barTimer");
+      const totalTimeBadge = document.getElementById("totalTimeBadge");
+      const agendaList = document.getElementById("agendaList");
+      const upcomingList = document.getElementById("upcomingList");
+      const remainingCopy = document.getElementById("remainingCopy");
+      const pauseResumeButton = document.getElementById("pauseResumeButton");
+      const nextButton = document.getElementById("nextButton");
+      const stopButton = document.getElementById("stopButton");
+      const nudgeScreen = document.getElementById("nudgeScreen");
+      const overtimeLabel = document.getElementById("overtimeLabel");
+      const startFlowButton = document.getElementById("startFlowButton");
+      const barHeader = document.getElementById("barHeader");
+      const wrapUpButton = document.getElementById("wrapUpButton");
+      const addFiveButton = document.getElementById("addFiveButton");
+
+      function uid() {
+        return String(Math.random()).slice(2, 10);
+      }
+
+      function formatClock(totalSeconds) {
+        const safe = Math.max(0, Math.floor(totalSeconds));
+        const minutes = Math.floor(safe / 60);
+        const seconds = safe % 60;
+        return String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0");
+      }
+
+      function totalMinutes() {
+        return state.items.reduce((sum, item) => sum + normalizedMinutes(item.minutes), 0);
+      }
+
+      function totalRemainingSeconds() {
+        if (state.mode !== "meeting") return 0;
+        const future = state.items.slice(state.currentIndex + 1).reduce((sum, item) => {
+          return sum + normalizedMinutes(item.minutes) * 60;
+        }, 0);
+        return Math.max(0, state.remainingSec) + future;
+      }
+
+      function normalizedMinutes(value) {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+      }
+
+      function currentItem() {
+        return state.items[state.currentIndex] || null;
+      }
+
+      function renderAgenda() {
+        agendaList.innerHTML = "";
+        if (!state.items.length) {
+          const empty = document.createElement("p");
+          empty.className = "empty-state";
+          empty.textContent = "Add your first topic to begin.";
+          agendaList.appendChild(empty);
+          return;
+        }
+
+        state.items.forEach((item, index) => {
+          const row = document.createElement("div");
+          row.className = "agenda-row";
+          row.innerHTML = `
+            <div class="drag-dot">::</div>
+            <input class="topic-input" type="text" value="${escapeHtml(item.topic)}" placeholder="Topic" />
+            <div class="minutes-wrap">
+              <input class="minutes-input" type="text" value="${normalizedMinutes(item.minutes) || ""}" placeholder="0" inputmode="numeric" />
+              <span class="minutes-label">min</span>
+            </div>
+            <button class="icon-button" type="button" aria-label="Move up">↑</button>
+            <button class="icon-button" type="button" aria-label="Move down">↓</button>
+            <button class="icon-button" type="button" aria-label="Delete">×</button>
+          `;
+
+          const topicInput = row.querySelector(".topic-input");
+          const minutesInput = row.querySelector(".minutes-input");
+          const [moveUpButton, moveDownButton, deleteButton] = row.querySelectorAll(".icon-button");
+
+          topicInput.addEventListener("input", (event) => {
+            item.topic = event.target.value;
+            renderMeeting();
+          });
+
+          minutesInput.addEventListener("input", (event) => {
+            event.target.value = event.target.value.replace(/[^\d]/g, "");
+            item.minutes = Number(event.target.value) || 0;
+            updateTotalBadge();
+            renderMeeting();
+          });
+
+          topicInput.addEventListener("keydown", onRowKeydown.bind(null, index));
+          minutesInput.addEventListener("keydown", onRowKeydown.bind(null, index));
+
+          moveUpButton.addEventListener("click", () => moveItem(index, index - 1));
+          moveDownButton.addEventListener("click", () => moveItem(index, index + 1));
+          deleteButton.addEventListener("click", () => removeItem(index));
+
+          agendaList.appendChild(row);
+        });
+      }
+
+      function onRowKeydown(index, event) {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        insertRow(index + 1);
+      }
+
+      function insertRow(index) {
+        state.items.splice(index, 0, { id: uid(), topic: "", minutes: 5 });
+        renderAll();
+        const nextRow = agendaList.children[index];
+        if (!nextRow) return;
+        const topicInput = nextRow.querySelector(".topic-input");
+        if (topicInput) topicInput.focus();
+      }
+
+      function moveItem(from, to) {
+        if (to < 0 || to >= state.items.length) return;
+        const [item] = state.items.splice(from, 1);
+        state.items.splice(to, 0, item);
+        renderAll();
+      }
+
+      function removeItem(index) {
+        state.items.splice(index, 1);
+        if (!state.items.length) {
+          state.items.push({ id: uid(), topic: "", minutes: 5 });
+        }
+        renderAll();
+      }
+
+      function updateTotalBadge() {
+        totalTimeBadge.textContent = formatClock(totalMinutes() * 60);
+      }
+
+      function startMeeting() {
+        const filtered = state.items
+          .map((item) => ({ id: item.id, topic: item.topic.trim(), minutes: normalizedMinutes(item.minutes) }))
+          .filter((item) => item.topic && item.minutes > 0);
+
+        if (!filtered.length) {
+          window.alert("Add at least one agenda item with a topic and duration.");
+          return;
+        }
+
+        state.items = filtered;
+        state.mode = "meeting";
+        state.expanded = false;
+        state.running = true;
+        state.currentIndex = 0;
+        state.remainingSec = filtered[0].minutes * 60;
+        state.overtimeSec = 0;
+        renderAll();
+      }
+
+      function wrapUp() {
+        state.mode = "setup";
+        state.expanded = false;
+        state.running = true;
+        state.currentIndex = 0;
+        state.remainingSec = 0;
+        state.overtimeSec = 0;
+        renderAll();
+      }
+
+      function addFiveMinutes() {
+        state.overtimeSec = 0;
+        state.remainingSec = 5 * 60;
+        state.running = true;
+        renderAll();
+      }
+
+      function togglePause() {
+        if (state.mode !== "meeting") return;
+        state.running = !state.running;
+        renderMeeting();
+      }
+
+      function goNext() {
+        if (state.mode !== "meeting") return;
+        if (state.currentIndex < state.items.length - 1) {
+          state.currentIndex += 1;
+          state.remainingSec = normalizedMinutes(currentItem().minutes) * 60;
+          state.overtimeSec = 0;
+          state.running = true;
+        } else {
+          state.remainingSec = 0;
+          state.overtimeSec = Math.max(1, state.overtimeSec);
+        }
+        renderAll();
+      }
+
+      function meetingStateClass() {
+        if (state.overtimeSec > 0) return "overtime";
+        if (state.remainingSec > 0 && state.remainingSec <= 60) return "warning";
+        return "normal";
+      }
+
+      function renderMeeting() {
+        const item = currentItem();
+        const duration = item ? normalizedMinutes(item.minutes) * 60 : 0;
+        const elapsed = Math.max(0, duration - state.remainingSec);
+        const progress = state.overtimeSec > 0 || duration === 0 ? 100 : Math.min(100, (elapsed / duration) * 100);
+
+        floatingBar.classList.toggle("expanded", state.expanded);
+        floatingBar.classList.toggle("warning", meetingStateClass() === "warning");
+        floatingBar.classList.toggle("overtime", meetingStateClass() === "overtime");
+        progressFill.style.width = progress + "%";
+
+        currentTopic.textContent = item ? item.topic : "Untitled";
+        currentSubtext.textContent = state.overtimeSec > 0
+          ? "Overtime"
+          : state.running
+            ? "Click to pause"
+            : "Paused";
+        barTimer.textContent = state.overtimeSec > 0 ? "+" + formatClock(state.overtimeSec) : formatClock(state.remainingSec);
+        pauseResumeButton.textContent = state.running ? "Pause" : "Resume";
+        remainingCopy.textContent = Math.ceil(totalRemainingSeconds() / 60) + "m remaining in meeting";
+
+        upcomingList.innerHTML = "";
+        const upcoming = state.items.slice(state.currentIndex + 1);
+        if (!upcoming.length) {
+          const finalItem = document.createElement("div");
+          finalItem.className = "upcoming-item";
+          finalItem.innerHTML = "<span>Final block in progress</span><span>now</span>";
+          upcomingList.appendChild(finalItem);
+        } else {
+          upcoming.forEach((nextItem) => {
+            const row = document.createElement("div");
+            row.className = "upcoming-item";
+            row.innerHTML = "<span>" + escapeHtml(nextItem.topic) + "</span><span>" + normalizedMinutes(nextItem.minutes) + "m</span>";
+            upcomingList.appendChild(row);
+          });
+        }
+
+        overtimeLabel.textContent = formatClock(state.overtimeSec);
+      }
+
+      function renderVisibility() {
+        const setupVisible = state.mode === "setup";
+        const meetingVisible = state.mode === "meeting";
+        const nudgeVisible = state.mode === "meeting" && state.overtimeSec > 0;
+
+        setupScreen.classList.toggle("hidden", !setupVisible);
+        meetingStage.classList.toggle("active", meetingVisible);
+        nudgeScreen.classList.toggle("active", nudgeVisible);
+      }
+
+      function renderAll() {
+        updateTotalBadge();
+        renderAgenda();
+        renderMeeting();
+        renderVisibility();
+      }
+
+      function tick() {
+        if (state.mode !== "meeting" || !state.running) return;
+        if (state.remainingSec > 0) {
+          state.remainingSec -= 1;
+          renderMeeting();
+          return;
+        }
+
+        if (state.currentIndex < state.items.length - 1) {
+          state.currentIndex += 1;
+          state.remainingSec = normalizedMinutes(currentItem().minutes) * 60;
+          state.overtimeSec = 0;
+          renderAll();
+          return;
+        }
+
+        state.overtimeSec += 1;
+        renderAll();
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;");
+      }
+
+      startFlowButton.addEventListener("click", startMeeting);
+      barHeader.addEventListener("click", togglePause);
+      pauseResumeButton.addEventListener("click", togglePause);
+      nextButton.addEventListener("click", goNext);
+      stopButton.addEventListener("click", wrapUp);
+      wrapUpButton.addEventListener("click", wrapUp);
+      addFiveButton.addEventListener("click", addFiveMinutes);
+
+      floatingBar.addEventListener("mouseenter", () => {
+        state.expanded = true;
+        renderMeeting();
+      });
+
+      floatingBar.addEventListener("mouseleave", () => {
+        state.expanded = false;
+        renderMeeting();
+      });
+
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && state.mode === "meeting" && state.overtimeSec > 0) {
+          wrapUp();
+        }
+        if (event.code === "Space" && state.mode === "meeting") {
+          event.preventDefault();
+          togglePause();
+        }
+      });
+
+      window.setInterval(tick, 1000);
+      renderAll();
+    </script>
+  </body>
+</html>

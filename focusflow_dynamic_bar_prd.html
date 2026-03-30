@@ -1,0 +1,199 @@
+# FocusFlow (Dynamic Bar)
+
+## Product Overview
+
+**The Pitch:** A floating, adaptive meeting assistant that keeps discussions on track without dominating the screen. It visualizes agenda blocks as a sleek, dynamic pill, transforming time management from a chore into a seamless ambient interface.
+
+**For:** Project managers, remote teams, and scrum masters who are tired of meetings running over but hate aggressive alarms.
+
+**Device:** Desktop (macOS/Windows)
+
+**Design Direction:** High-end glassmorphism meets functional minimalism. Translucent surfaces, deep blurs, and organic animations.
+
+**Inspired by:** macOS Dynamic Island, Linear, Cron.
+
+---
+
+## Screens
+
+- **Agenda Setup:** Initial view to input topics and allocate time blocks.
+- **Dynamic Bar (Collapsed):** The default floating state showing active agenda item and countdown.
+- **Dynamic Bar (Expanded):** Hover state revealing the full agenda list and controls.
+- **The Nudge (Overtime):** Full-screen ambient takeover to discourage running late.
+
+---
+
+## Key Flows
+
+**Setup & Start:**
+1. User opens app -> sees **Agenda Setup** (centered modal).
+2. User types "Intro", hits `Tab`, types "5m", hits `Enter` -> adds row.
+3. User clicks **Start Flow** -> Window shrinks into **Dynamic Bar (Collapsed)**.
+
+**During Meeting:**
+1. **Dynamic Bar** floats top-center. Progress bar fills background of the pill.
+2. User hovers bar -> Expands to **Dynamic Bar (Expanded)**.
+3. User clicks "Next" icon -> Current item completes, next timer starts immediately.
+
+**Meeting Overrun:**
+1. Timer hits 0:00 on final item.
+2. Screen fades into **The Nudge** (blurred overlay).
+3. User clicks "Wrap Up" -> Overlay dissolves, app closes or resets.
+
+---
+
+<details>
+<summary>Design System</summary>
+
+## Color Palette
+
+- **Primary:** `#FFFFFF` - Main text, icons (High Contrast).
+- **Background:** `rgba(20, 20, 23, 0.65)` - The base glass color (Dark Mode default).
+- **Surface:** `rgba(255, 255, 255, 0.08)` - Hover states, input fields.
+- **Text:** `#EAEAEA` - Primary copy.
+- **Muted:** `#888888` - Secondary labels, upcoming agenda items.
+- **Accent:** `#3B82F6` - Active progress fill (Electric Blue).
+- **Warning:** `#F59E0B` - Last minute of a block.
+- **Critical:** `#EF4444` - Overtime/Nudge state.
+
+## Typography
+
+**Font Family:** *Satoshi* (preferred) or *General Sans*. Geometric but humanist sans-serifs.
+
+- **Headings:** Satoshi, 700, 32px (Setup Title), 14px (Active Item Title).
+- **Body:** Satoshi, 500, 14px (Agenda inputs).
+- **Tabular:** Satoshi, 700, 13px (Timer digits - must be monospaced variant).
+- **Micro:** Satoshi, 500, 11px (Labels like "Next up").
+
+**Style Notes:**
+- **Glass:** `backdrop-filter: blur(20px) saturate(180%)`.
+- **Borders:** 1px solid `rgba(255, 255, 255, 0.1)`.
+- **Shadows:** Soft diffuse glow `0px 10px 40px -10px rgba(0,0,0,0.5)`.
+- **Corners:** Extremely round. `999px` for the pill, `24px` for the setup card.
+
+## Design Tokens
+
+```css
+:root {
+  --glass-bg: rgba(20, 20, 23, 0.65);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-blur: blur(20px);
+  --text-primary: #EAEAEA;
+  --text-muted: #888888;
+  --accent-blue: #3B82F6;
+  --accent-red: #EF4444;
+  --font-main: 'Satoshi', sans-serif;
+  --radius-pill: 9999px;
+  --radius-card: 24px;
+}
+```
+
+</details>
+
+---
+
+<details>
+<summary>Screen Specifications</summary>
+
+### Agenda Setup
+
+**Purpose:** Quick entry of meeting structure before shrinking to the pill.
+
+**Layout:** Centered floating card (400px width). Not full screen.
+
+**Key Elements:**
+- **Header:** "FocusFlow", centered, 18px bold, white.
+- **Total Time:** "00:00" badge in top right, updates dynamically.
+- **Input List:** Vertical stack.
+  - **Input Row:** Text input (Topic) + Number input (Minutes).
+  - **Style:** Transparent background, bottom border only. 14px text.
+- **Start Button:** Full width, bottom of card. `bg-white`, `text-black`. Label: "Enter Flow".
+
+**States:**
+- **Empty:** Shows one empty row focused by default.
+- **Typing:** Hitting `Enter` automatically creates a new row below.
+
+**Interactions:**
+- **Drag & Drop:** Reorder rows via drag handle on left (6 dots icon).
+- **Click Start:** Card creates a "suck in" animation effect, transforming into the Dynamic Bar.
+
+---
+
+### Dynamic Bar (Collapsed)
+
+**Purpose:** Always-on-top passive monitor.
+
+**Layout:** Floating pill, `200px x 44px`, top-center of screen.
+
+**Key Elements:**
+- **Container:** Dark glass background, fully rounded.
+- **Progress Fill:** A subtle gradient (`rgba(59, 130, 246, 0.3)`) fills the background of the pill from left to right as time passes.
+- **Left Content:** "Topic A" (Truncated if long), white, bold.
+- **Right Content:** "12:45" (Countdown), tabular nums.
+- **Separator:** Subtle vertical divider between topic and time.
+
+**States:**
+- **Normal:** Blue accent progress.
+- **Warning (<1m):** Progress turns Orange. Pulse animation every 10s.
+- **Overtime:** Progress turns Red. Timer counts *up* (e.g., "+01:20").
+
+**Interactions:**
+- **Hover:** Triggers expansion to **Dynamic Bar (Expanded)**.
+- **Click:** Pauses/Resumes timer.
+
+---
+
+### Dynamic Bar (Expanded)
+
+**Purpose:** View context and controls without leaving current context.
+
+**Layout:** Pill grows downwards. Width increases to `320px`. Height dynamic based on items.
+
+**Key Elements:**
+- **Current Item (Top):** Same as collapsed view, but with play/pause/skip controls visible on hover.
+- **Up Next (List):**
+  - Small text `12px`, muted color.
+  - "Topic B - 10m"
+  - "Topic C - 5m"
+- **Total Remaining:** Footer text "23m remaining in meeting".
+- **Action Buttons:** Small icon-only buttons (Stop, Edit, Pin).
+
+**Animation:**
+- **Spring Physics:** Expansion should feel snappy (mass: 1, tension: 180, friction: 12).
+
+---
+
+### The Nudge (Overtime)
+
+**Purpose:** Social pressure to end the meeting.
+
+**Layout:** Full viewport overlay. `z-index: 9999`.
+
+**Key Elements:**
+- **Backdrop:** `backdrop-filter: blur(12px)`. Background `rgba(0,0,0,0.4)`. The user can still see their desktop, but it's foggy.
+- **Center Text:** Huge (80px), Thin font weight. "Meeting Over."
+- **Subtext:** "You are 4 minutes overtime."
+- **Dismiss Button:** "Wrap Up (Close App)" - white outline button.
+- **Snooze Button:** "Add 5 min" - ghost button, opacity 50%.
+
+**Interactions:**
+- **Click Backdrop:** Does nothing (forces interaction with buttons).
+
+</details>
+
+---
+
+<details>
+<summary>Build Guide</summary>
+
+**Stack:** Electron (or Tauri) + React + Tailwind CSS v3 + Framer Motion.
+
+**Build Order:**
+1. **Agenda Setup:** Build the input logic and state management (Redux/Zustand) for the meeting structure.
+2. **Dynamic Bar (Collapsed):** Implement the frameless transparent window and "Always on Top" logic. Get the timer ticking.
+3. **Animations:** Use Framer Motion `layoutId` to morph the Setup Card into the Bar.
+4. **The Nudge:** Implement the secondary full-screen window that triggers on timer expiry.
+
+**Key Tech Note:** Ensure the "Click-through" property is managed correctly. The collapsed bar accepts clicks, but the area *around* the pill must let clicks pass through to the underlying OS.
+
+</details>
